@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+
+import itertools
+
+
+def check_env():
+    pass
+
+
+def run_command(cmd: str) -> bool:
+    """
+
+    :type cmd: String
+    """
+
+    ignored_lines = ['Sorting...', 'FullTextSearch...',
+                     'NameVersionPublisherNotesSummary']
+
+    from subprocess import Popen, PIPE
+    proc = Popen(cmd, stdout=PIPE, shell=True)
+    while True:
+        output = proc.stdout.readline()
+        if proc.poll() is not None:
+            break
+        if output:
+            out = output.strip().decode('utf8')
+            # print(out)
+            with open(temp_filepath, 'a') as file:
+                if out.replace(' ', '') not in ignored_lines:
+                    file.write(str(out + '\n'))
+
+        proc.stdout.flush()
+
+    return proc.poll()
+
+    # rc=proc.poll()
+
+
+found_apt = []
+found_snap = []
+
+
+def count(plugin):
+    from pathlib import Path
+    ignored_lines = ['Done']
+    found = []
+
+    path = Path().absolute()
+
+    if plugin == 'apt':
+        tempfile = 'apt.tmp'
+        file_name = Path(path, tempfile)
+        with open(file_name, 'r') as infile:
+            for line in infile:
+                line2 = next(infile)
+                found_apt.append((line, line2))
+
+        statement = f'Found {len(found_apt)} packages that might match with apt'
+        print(statement)
+
+    if plugin == 'snap':
+        tempfile = 'snap.tmp'
+        file_name = Path(path, tempfile)
+        with open(file_name, 'r') as file:
+            for line in file.readlines():
+                found_snap.append(line)
+
+        statement = f'Found {len(found_snap)} snap packages using "snap search"'
+        print(statement)
+
+
+def write_tmp(service):
+    from pathlib import Path
+    global temp_filepath
+
+    path = Path().absolute()
+
+    if service.lower().strip() == 'apt':
+        tempfile = 'apt.tmp'
+
+    if service.lower().strip() == 'snap':
+        tempfile = 'snap.tmp'
+
+    if service.lower().strip() == 'flatpak':
+        tempfile = 'flatpak.tmp'
+
+    temp_filepath = Path(path, tempfile)
+
+    return temp_filepath
+
+
+sys_profile = 'ubuntu'
+flatpak = True
+snapd = True
+
+
+def search(target: str):
+    from pathlib import Path
+    import os
+
+    path = Path().absolute()
+
+    tmp_files = ['apt', 'snap', 'flatpak']
+
+    tempfile = 'temp.tmp'
+    temp_filepath = Path(path, tempfile)
+    print(temp_filepath)
+    if temp_filepath.exists():
+        print('Deleting old query results')
+        os.remove(temp_filepath)
+
+    if sys_profile.lower() == 'ubuntu':
+        print('Searching apt...')
+        write_tmp('apt')
+        run_command(f'apt search {target}')
+        count('apt')
+    if flatpak:
+        print('Searching flatpak...')
+        write_tmp('flatpak')
+        run_command(f'flatpak search {target}')
+    if snapd:
+        print('Searching snap...')
+        write_tmp('snap')
+        run_command(f'snap search {target}')
+        count('snap')
+
+
+from argparse import ArgumentParser
+
+parser = ArgumentParser(prefix_chars='+-')
+
+parser.add_argument('-s', '--search',
+                    action='store',
+                    dest='search')
+
+args = parser.parse_args()
+
+query = args.search
+print(query)
+
+search(query)
+
+###
+###
+## Dev Notes:
+# Name Choices:
+#### snAPT PipPak
+#### PipsnAPT Pak
+#### Pip-snAPT-Pak
+#### Pip-snAPT-Flat
+#### ConPakMan
+#### Pak-man-man
+#### pipSnAPT-Gempak
+#### GaspPakman (rubyGems Apt Snap Pip Package Manager)
+#### GraspPak (Gems, ruby, apt, snap, pip Packages)
+# apt snap rubygems pip flatpak
+###
+###
+###

@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# Project Specific Ignores
+apt.tmp
+flatpak.tmp
+snap.tmp
